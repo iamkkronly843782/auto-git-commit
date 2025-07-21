@@ -2,7 +2,6 @@ const simpleGit = require('simple-git');
 const fs = require('fs');
 const path = require('path');
 
-// Load GitHub token from environment
 const TOKEN = process.env.GITHUB_TOKEN;
 if (!TOKEN) {
   console.error('❌ GITHUB_TOKEN not set');
@@ -31,9 +30,7 @@ async function commitAndPushLoop() {
   const git = simpleGit({ baseDir: CLONE_DIR });
   await setupGitIdentity(git);
 
-  let runCount = 0;
-
-  const interval = setInterval(async () => {
+  setInterval(async () => {
     const now = new Date().toISOString();
     const filePath = path.join(CLONE_DIR, 'heartbeat.txt');
     fs.writeFileSync(filePath, `Updated at ${now}`);
@@ -46,14 +43,7 @@ async function commitAndPushLoop() {
     } catch (err) {
       console.error('❌ Git push failed:', err.message);
     }
-
-    runCount++;
-    if (runCount >= 12) {
-      console.log('♻️ Restarting service after 1 minute...');
-      clearInterval(interval);
-      process.exit(0); // Render will auto-restart the service
-    }
-  }, 5000); // every 5 sec
+  }, 500000); // every 5 seconds
 }
 
 commitAndPushLoop().catch(err => {
