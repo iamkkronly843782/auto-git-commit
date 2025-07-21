@@ -1,0 +1,11 @@
+{
+  "name": "auto-git-committer",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "simple-git": "^3.21.0"
+  }
+}
