@@ -1,51 +1,63 @@
 const simpleGit = require('simple-git');
-const fs = require('fs');
-const path = require('path');
+const fs        = require('fs');
+const path      = require('path');
 
-const git = simpleGit();
+// Read your token from the environment
+const TOKEN     = process.env.GITHUB_TOKEN;
+if (!TOKEN) {
+  console.error('ERROR: GITHUB_TOKEN is not set.');
+  process.exit(1);
+}
 
-// ✅ Pre-configured public GitHub repository
-const REPO_URL = 'https://github.com/iamkkronly843782/auto-git-commit.git';
+// Embed the token into the clone URL
+const REPO_URL  = `https://${TOKEN}@github.com/iamkkronly843782/auto-git-commit.git`;
 const CLONE_DIR = './repo';
 
-// ✅ Kaustav's GitHub identity
-const GIT_USER_NAME = 'Kaustav';
+// Your Git identity
+const GIT_USER_NAME  = 'Kaustav';
 const GIT_USER_EMAIL = 'kkray1345+8d8d8ds7s7s77ss7@gmail.com';
 
 async function setupGitIdentity(projectGit) {
-  await projectGit.addConfig('user.name', GIT_USER_NAME, undefined, 'local');
+  await projectGit.addConfig('user.name',  GIT_USER_NAME,  undefined, 'local');
   await projectGit.addConfig('user.email', GIT_USER_EMAIL, undefined, 'local');
 }
 
-async function cloneOrPullRepo() {
+async function cloneRepoIfNeeded() {
   if (!fs.existsSync(CLONE_DIR)) {
-    console.log('Cloning repository...');
-    await git.clone(REPO_URL, CLONE_DIR);
+    console.log('Cloning repository with token authentication...');
+    await simpleGit().clone(REPO_URL, CLONE_DIR);
   }
 }
 
 async function commitLoop() {
-  await cloneOrPullRepo();
+  await cloneRepoIfNeeded();
   const projectGit = simpleGit({ baseDir: CLONE_DIR });
 
+  // Ensure commits are attributed properly
   await setupGitIdentity(projectGit);
 
   while (true) {
-    const now = new Date().toISOString();
+    const now      = new Date().toISOString();
     const filePath = path.join(CLONE_DIR, 'heartbeat.txt');
+
     fs.writeFileSync(filePath, `Updated at ${now}`);
 
     try {
       await projectGit.add('./*');
       await projectGit.commit(`Auto update at ${now}`);
+      // Push back using the same token-embedded URL
       await projectGit.push('origin', 'main');
-      console.log(`✅ Pushed at ${now}`);
+      console.log(`✅ Committed & pushed at ${now}`);
     } catch (err) {
-      console.error('❌ Push error:', err.message);
+      console.error('❌ Push failed:', err.message);
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 5000)); // 5 seconds delay
+    // Wait 5 seconds before the next iteration
+    await new Promise(res => setTimeout(res, 5_000));
   }
 }
 
-commitLoop().catch(console.error);
+commitLoop().catch(err => {
+  console.error('Fatal error:', err);
+  process.exit(1);
+});
